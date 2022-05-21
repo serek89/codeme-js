@@ -1,0 +1,32 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: rgb(63,94,251);
+    color: aliceblue;
+}
+
+.panel {
+    backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(17, 25, 40, 0.75);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    margin: 2em;
+    padding: 2em;
+}
+
+button {
+    padding: .5em;
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    border-radius: 6px;
+    background-color: rgb(55, 75, 112);
+    color: aliceblue;
+}
+
+button:hover {
+    border: 1px solid rgba(255, 255, 255, 0.250);
+    background-color: rgb(79, 107, 160);
+}

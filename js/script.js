@@ -1,41 +1,6 @@
-class Player {
-    constructor(id, name) {
-        this.id = id,
-        this.name = name,
-        this.bigPoints = 0,
-        this.smallPoints = 0,
-        this.lostPoints = 0
-    }
-
-    addPoints = (bigPoints, smallPoints, lostPoints) => {
-        this.bigPoints += bigPoints;
-        this.smallPoints += smallPoints;
-        this.lostPoints += lostPoints;
-    }
-
-    /**
-     * Sortuje w koelejności:
-     * po bigPoints - malejąco 
-     * po smallPoints - malejąco
-     * po lostPoints - rosnąco
-     */
-    static sortByPoints = (a, b) => {
-        if (a.bigPoints != b.bigPoints) {
-            return b.bigPoints - a.bigPoints;
-        }
-        if (a.smallPoints != b.smallPoints) {
-            return b.smallPoints - a.smallPoints;
-        }
-        return a.lostPoints - b.lostPoints;
-    }
-}
-
-const playerBYE = new Player(0, "BYE");
-
 class Tournament {
-    constructor(name, date) {
+    constructor(name) {
         this.name = name,
-        this.date = date
         this.players = [],
         this.rounds = [],
         this.maxRound = 0,
@@ -68,7 +33,7 @@ class Tournament {
             }
         }
     
-        const round = new Round(this.rounds.length+1);
+        let round = new Round(this.rounds.length+1);
         round.prepareParings(this.players);
         this.rounds.push(round);
     }
@@ -78,10 +43,41 @@ class Tournament {
     }
 }
 
+class Player {
+    constructor(id, name) {
+        this.id = id,
+        this.name = name,
+        this.wins = 0
+    }
+
+    addWin = () => {
+        this.wins += 1;
+    }
+
+    /**
+     * Sortuje w koelejności:
+     * po bigPoints - malejąco 
+     * po smallPoints - malejąco
+     * po lostPoints - rosnąco
+     */
+    static sortByPoints = (a, b) => {
+        if (a.wins != b.wins) {
+            return b.bigPoints - a.bigPoints;
+        }
+        return a.name - b.name;
+    }
+}
+
+const playerBYE = new Player(0, "BYE");
+
 class Round {
     constructor(number) {
         this.number = number,
         this.parings = []
+    }
+
+    isFinish () {
+        console.log("a");
     }
 
     /**
@@ -111,51 +107,245 @@ class Paring {
     constructor (playerOne, playerTwo) {
         this.playerOne = playerOne,
         this.playerTwo = playerTwo,
-        this.playerOnePoints = 0,
-        this.playerTwoPoints = 0,
+        this.playerOneWin = false,
+        this.playerTwoWin = false,
         this.locked = false
     }
 }
 
+const app = document.querySelector("app");
+let tournament = getTournament();
+
 
 /**
- * test
- * turniej BO3 - do 2 zwycięstw
+ * Odczytywanie zapisanego turnieju
+ * @returns ?Tournament
  */
-
-const maxPlayer = 13;
-const myTournament = new Tournament('testowy', '2022-04-23');
-
-for (let i = 1; i <= maxPlayer; i++) {
-    let char = String.fromCharCode(64+i);
-    myTournament.addPlayer("Gracz " + char);
+function getTournament() {
+    let check = localStorage.getItem("tournament");
+    if (check === null) {
+        return null;
+    } else {
+        let result = new Tournament();
+        Object.assign(result, JSON.parse(check));
+        return result;
+    }
 }
 
-myTournament.start();
-for (let i = 0; i < myTournament.maxRound; i++) {
-    myTournament.startNewRound();
-    playRound(myTournament.rounds[i].parings);
+/**
+ * Tworzenie nowego turnieju i zapisanie go w LocalStorage
+ */
+function createTournament() {
+    const panelDiv = document.createElement("div");
+    panelDiv.classList.add('panel');
+    
+    const nameTournament = document.createElement("input");
+    nameTournament.setAttribute("id", "nameTournament");
+    panelDiv.classList.add('inputText');
+    nameTournament.type = "text";
+
+    const submitButton = document.createElement("button");
+    submitButton.setAttribute("id", "submitName");
+    submitButton.innerHTML = 'Stwórz turniej';
+
+    panelDiv.append(nameTournament);
+    panelDiv.append(submitButton);
+    this.app.append(panelDiv);
+
+    submitButton.addEventListener('click', () => {
+        const newTournament = new Tournament(nameTournament.value);
+        localStorage.setItem("tournament", JSON.stringify(newTournament));
+        window.location.reload();
+    })  
 }
 
-myTournament.players.sort(Player.sortByPoints);
+/**
+ * Prezentacja i obsługa bierzącego turnieju
+ */
+function showTournament() {
+    getHeader();
+    getRounds();
+    getPlayersList();
+}
 
-console.log(myTournament);
+/**
+ * Generuje nagłowek strony
+ */
+function getHeader() {
+    let panelDiv = document.createElement("div");
+    panelDiv.classList.add('panel');
+    
+    let nameTournament = document.createElement("h2");
+    nameTournament.innerHTML = tournament.name;
+    panelDiv.append(nameTournament);
 
-playRound = (parings) => {
-    parings.forEach(e => {
-        if(!e.locked) {
-            if (Math.floor(Math.random() * 2)) {
-                e.playerOnePoints = 2;
-                e.setPlayerTwoPoints( Math.floor(Math.random() * 2) );
-                e.playerOne.addPoints(1, e.playerOnePoints, e.playerTwoPoints);
-                e.playerTwo.addPoints(0, e.playerTwoPoints, e.playerOnePoints);
-            } else {
-                e.setPlayerOnePoints( Math.floor(Math.random() * 2) );
-                e.playerTwoPoints = 2;
-                e.playerOne.addPoints(0, e.playerOnePoints, e.playerTwoPoints);
-                e.playerTwo.addPoints(1, e.playerTwoPoints, e.playerOnePoints);
-            }
-            e.locked = true;
-        }
+    if (!tournament.isStarted) {
+
+        let startButton = document.createElement("button");
+        startButton.innerHTML = "Start";
+        panelDiv.append(startButton);
+
+        startButton.addEventListener('click', () => {
+            tournament.start();
+            tournament.startNewRound();
+            localStorage.setItem("tournament", JSON.stringify(tournament));
+            window.location.reload();
+        })
+    }
+    
+    let deleteButton = document.createElement("button");
+    deleteButton.innerHTML = "Usuń";
+    panelDiv.append(deleteButton);
+
+    deleteButton.addEventListener('click', () => {
+        localStorage.removeItem("tournament");
+        window.location.reload();
+    })
+
+    this.app.append(panelDiv);
+}
+
+function getRounds() {
+    let div = document.createElement("div");
+    console.log(tournament);
+    tournament.rounds.forEach( (round) => {
+        getRound(round, div);
     });
+
+    this.app.append(div);
+}
+
+function getRound(round, div) {
+    let panelDiv = document.createElement("div");
+    panelDiv.classList.add('panel');
+    let roundTitle = document.createElement("h2");
+    roundTitle.innerHTML = "Runda " + round.number;
+    panelDiv.append(roundTitle);
+
+    round.parings.forEach( (paring, index) => {
+        getParing(paring, index, panelDiv);
+    });
+    div.prepend(panelDiv);
+
+    round.isFinish();
+}
+
+function getParing(paring, index, roundDiv) {
+    let paringDiv = document.createElement("div");
+    paringDiv.classList.add('panel');
+    paringDiv.innerHTML = "Stół " + (index+1);
+
+    let playerOneButton = document.createElement("button");
+    playerOneButton.innerHTML = paring.playerOne.name;
+    if (paring.locked && paring.playerOneWin) {
+        playerOneButton.setAttribute("disabled", "");
+        playerOneButton.style.backgroundColor = "green";
+    } else if (paring.locked) {
+        playerOneButton.setAttribute("disabled", "");
+        playerOneButton.style.backgroundColor = "red";
+    }
+    paringDiv.append(playerOneButton);
+
+    let vsSpan = document.createElement("span");
+    vsSpan.innerHTML = " vs. ";
+    paringDiv.append(vsSpan);
+
+    let playerTwoButton = document.createElement("button");
+    playerTwoButton.innerHTML = paring.playerTwo.name;
+    if (paring.locked && paring.playerTwoWin) {
+        playerTwoButton.setAttribute("disabled", "");
+        playerTwoButton.style.backgroundColor = "green";
+    } else if (paring.locked) {
+        playerTwoButton.setAttribute("disabled", "");
+        playerTwoButton.style.backgroundColor = "red";
+    }
+    paringDiv.append(playerTwoButton);
+    roundDiv.append(paringDiv);
+
+    playerOneButton.addEventListener('click', () => {
+        paring.playerOneWin = true;
+        paring.locked = true;
+        paring.playerOne.wins += 1;
+        save();
+
+    })
+
+    playerTwoButton.addEventListener('click', () => {
+        paring.playerTwoWin = true;
+        paring.locked = true;
+        paring.playerTwo.wins += 1;
+        save();
+    })
+}
+
+
+/**
+ * Generuje listę graczy
+ * TODO: rozbudować o statystyki
+ */
+function getPlayersList() {
+    let panelDiv = document.createElement("div");
+    panelDiv.classList.add('panel');
+
+    if (!tournament.isStarted) {
+        addPlayerForm(panelDiv);
+    }
+
+    let table = document.createElement("table");
+    let tbody = document.createElement("tbody");
+    table.append(tbody);
+
+    tournament.players.forEach( (player, index) => {
+        let row = document.createElement("tr");
+        let lp = document.createElement("td");
+        lp.innerHTML = index+1;
+        row.append(lp);
+        let name = document.createElement("td");
+        name.innerHTML = player.name;
+        row.append(name);
+        tbody.append(row);
+    })
+
+
+    panelDiv.append(table);
+    this.app.append(panelDiv);
+}
+
+/**
+ * Formularz dodający graczy.
+ * Dziła TYLKO przed turniejem.
+ * @param panelDiv 
+ */
+function addPlayerForm(panelDiv) {
+    
+    let addPlayerName = document.createElement("input");
+    addPlayerName.setAttribute("id", "addPlayerName");
+    addPlayerName.type = "text";
+
+    let addPlayerButton = document.createElement("button");
+    addPlayerButton.setAttribute("id", "addPlayerButton");
+    addPlayerButton.innerHTML = 'Dodaj gracza';
+
+    panelDiv.append(addPlayerName);
+    panelDiv.append(addPlayerButton);
+    panelDiv.append(document.createElement("hr"));
+
+    addPlayerButton.addEventListener('click', () => {
+        tournament.addPlayer(addPlayerName.value);
+        save();
+    })  
+}
+
+/**
+ * Zapisane do LocalStorage i przeładowanie strony
+ */
+function save() {
+    localStorage.setItem("tournament", JSON.stringify(tournament));
+    document.location.reload();
+}
+
+if (tournament === null) {
+    createTournament();
+} else {
+    showTournament();
 }
